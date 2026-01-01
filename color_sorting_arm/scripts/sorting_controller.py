@@ -94,7 +94,7 @@ class SortingController:
         """Move arm to home position"""
         rospy.loginfo("Moving to home position")
         home_positions = {
-            'joint1': 0.0,
+            'joint1': 1.57,   # face the table
             'joint2': 0.5,    # Tilt forward to see table
             'joint3': -0.5,   # Elbow compensation
             'joint4': -0.3,   # Wrist down to point camera forward
@@ -106,10 +106,10 @@ class SortingController:
         """Move arm to observation position to see cubes"""
         rospy.loginfo("Moving to observation position")
         observation_positions = {
-            'joint1': 0.0,
-            'joint2': 0.7,    # Tilt more forward
-            'joint3': -0.8,   # Elbow up
-            'joint4': -0.5,   # Wrist angled to see table
+            'joint1': 1.57,   # rotate toward table/cubes
+            'joint2': 0.9,    # Tilt more forward
+            'joint3': -1.0,   # Elbow up
+            'joint4': -0.6,   # Wrist angled to see table
             'joint5': 0.0,
         }
         self.move_joints(observation_positions, duration=3.0)
