@@ -87,9 +87,8 @@
         </visual>
         
         <sensor type="camera" name="camera">
-          <!-- Gazebo camera looks along +X axis in sensor frame -->
-          <!-- To look DOWN: rotate -90deg around Y (pitch=-90) so +X points to -Z world -->
-          <pose>0 0 -0.08 0 -1.5708 0</pose>
+          <!-- Sensor at bottom of camera, pitch=90deg to look DOWN -->
+          <pose>0 0 -0.08 0 1.5708 0</pose>
           <visualize>true</visualize>
           <update_rate>30</update_rate>
           <camera>
@@ -103,9 +102,6 @@
               <near>0.1</near>
               <far>5.0</far>
             </clip>
-            <save enabled="false">
-              <path>/tmp/camera_frames</path>
-            </save>
           </camera>
           <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
             <alwaysOn>true</alwaysOn>
