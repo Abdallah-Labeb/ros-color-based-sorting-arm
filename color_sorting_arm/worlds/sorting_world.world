@@ -48,13 +48,18 @@
     </model>
 
     <!-- =========================== OVERHEAD CAMERA =========================== -->
-    <!-- Simple overhead camera looking straight down at table -->
-    <!-- Camera in Gazebo looks along +X axis by default -->
-    <!-- To look DOWN: rotate pitch by -90 degrees (-1.5708 rad) -->
+    <!-- Camera positioned above table center, looking straight down -->
+    <!-- In Gazebo SDF, camera looks along +X axis in its local frame -->
+    <!-- Model pose: x y z roll pitch yaw -->
+    <!-- pitch = +90deg (1.5708) rotates +X to point DOWN (-Z world) -->
     <model name="overhead_camera">
       <static>true</static>
-      <pose>0.35 0 1.2 0 1.5708 0</pose>
+      <!-- Position above table center at height 1.0m, pitched down 90 degrees -->
+      <pose>0.35 0 1.0 0 1.5708 0</pose>
       <link name="camera_link">
+        <inertial>
+          <mass>0.1</mass>
+        </inertial>
         <visual name="visual">
           <geometry>
             <box>
@@ -62,23 +67,22 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.1 0.1 0.1 1</ambient>
-            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <ambient>0.2 0.2 0.2 1</ambient>
           </material>
         </visual>
-        <sensor type="camera" name="overhead_camera_sensor">
-          <pose>0 0 0 -1.5708 0 -1.5708</pose>
+        <sensor type="camera" name="camera_sensor">
           <update_rate>30.0</update_rate>
-          <camera name="head">
-            <horizontal_fov>1.2</horizontal_fov>
+          <visualize>true</visualize>
+          <camera name="overhead_cam">
+            <horizontal_fov>1.3</horizontal_fov>
             <image>
               <width>640</width>
               <height>480</height>
               <format>R8G8B8</format>
             </image>
             <clip>
-              <near>0.05</near>
-              <far>3.0</far>
+              <near>0.02</near>
+              <far>5.0</far>
             </clip>
           </camera>
           <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
@@ -88,6 +92,12 @@
             <imageTopicName>image_raw</imageTopicName>
             <cameraInfoTopicName>camera_info</cameraInfoTopicName>
             <frameName>camera_link</frameName>
+            <hackBaseline>0.0</hackBaseline>
+            <distortionK1>0.0</distortionK1>
+            <distortionK2>0.0</distortionK2>
+            <distortionK3>0.0</distortionK3>
+            <distortionT1>0.0</distortionT1>
+            <distortionT2>0.0</distortionT2>
           </plugin>
         </sensor>
       </link>
