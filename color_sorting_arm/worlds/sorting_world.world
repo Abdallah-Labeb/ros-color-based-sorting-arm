@@ -47,76 +47,16 @@
       </link>
     </model>
 
-    <!-- =========================== CAMERA STAND (FAR FROM ARM) =========================== -->
-    <!-- Camera on tall stand, positioned far behind and high up -->
-    <model name="camera_stand">
+    <!-- =========================== OVERHEAD CAMERA =========================== -->
+    <!-- Simple overhead camera looking straight down at table -->
+    <model name="overhead_camera">
       <static>true</static>
-      
-      <!-- Base on ground behind robot -->
-      <link name="stand_base">
-        <pose>-0.5 0 0.02 0 0 0</pose>
-        <visual name="visual">
-          <geometry>
-            <cylinder>
-              <radius>0.06</radius>
-              <length>0.04</length>
-            </cylinder>
-          </geometry>
-          <material>
-            <ambient>0.2 0.2 0.2 1</ambient>
-            <diffuse>0.2 0.2 0.2 1</diffuse>
-          </material>
-        </visual>
-        <collision name="collision">
-          <geometry>
-            <cylinder>
-              <radius>0.06</radius>
-              <length>0.04</length>
-            </cylinder>
-          </geometry>
-        </collision>
-      </link>
-      
-      <!-- Tall vertical pole -->
-      <link name="vertical_pole">
-        <pose>-0.5 0 0.7 0 0 0</pose>
-        <visual name="visual">
-          <geometry>
-            <cylinder>
-              <radius>0.015</radius>
-              <length>1.4</length>
-            </cylinder>
-          </geometry>
-          <material>
-            <ambient>0.4 0.4 0.4 1</ambient>
-            <diffuse>0.4 0.4 0.4 1</diffuse>
-          </material>
-        </visual>
-      </link>
-      
-      <!-- Horizontal arm extending over table -->
-      <link name="horizontal_arm">
-        <pose>0.0 0 1.4 0 0 0</pose>
+      <pose>0.35 0 1.5 0 1.5708 0</pose>
+      <link name="camera_link">
         <visual name="visual">
           <geometry>
             <box>
-              <size>1.0 0.03 0.03</size>
-            </box>
-          </geometry>
-          <material>
-            <ambient>0.4 0.4 0.4 1</ambient>
-            <diffuse>0.4 0.4 0.4 1</diffuse>
-          </material>
-        </visual>
-      </link>
-      
-      <!-- Camera housing - positioned above center of table, looking DOWN -->
-      <link name="camera_housing">
-        <pose>0.35 0 1.3 0 0 0</pose>
-        <visual name="visual">
-          <geometry>
-            <box>
-              <size>0.06 0.1 0.06</size>
+              <size>0.05 0.05 0.05</size>
             </box>
           </geometry>
           <material>
@@ -124,27 +64,20 @@
             <diffuse>0.1 0.1 0.1 1</diffuse>
           </material>
         </visual>
-        
-        <!-- Camera sensor looking straight down at table -->
-        <sensor type="camera" name="overhead_camera">
-          <pose>0 0 -0.05 0 1.5708 0</pose>
+        <sensor type="camera" name="overhead_camera_sensor">
+          <pose>0 0 0 0 0 0</pose>
           <update_rate>30.0</update_rate>
           <camera name="head">
-            <horizontal_fov>1.4</horizontal_fov>
+            <horizontal_fov>1.2</horizontal_fov>
             <image>
               <width>640</width>
               <height>480</height>
               <format>R8G8B8</format>
             </image>
             <clip>
-              <near>0.1</near>
+              <near>0.05</near>
               <far>3.0</far>
             </clip>
-            <noise>
-              <type>gaussian</type>
-              <mean>0.0</mean>
-              <stddev>0.005</stddev>
-            </noise>
           </camera>
           <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
             <alwaysOn>true</alwaysOn>
@@ -152,15 +85,43 @@
             <cameraName>camera</cameraName>
             <imageTopicName>image_raw</imageTopicName>
             <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-            <frameName>camera_optical_frame</frameName>
-            <hackBaseline>0.0</hackBaseline>
-            <distortionK1>0.0</distortionK1>
-            <distortionK2>0.0</distortionK2>
-            <distortionK3>0.0</distortionK3>
-            <distortionT1>0.0</distortionT1>
-            <distortionT2>0.0</distortionT2>
+            <frameName>camera_link</frameName>
           </plugin>
         </sensor>
+      </link>
+    </model>
+
+    <!-- Camera Stand (visual only) -->
+    <model name="camera_stand">
+      <static>true</static>
+      <link name="pole">
+        <pose>-0.3 0 0.75 0 0 0</pose>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.02</radius>
+              <length>1.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.3 0.3 0.3 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="arm">
+        <pose>0.025 0 1.5 0 0 0</pose>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.7 0.02 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.3 0.3 0.3 1</diffuse>
+          </material>
+        </visual>
       </link>
     </model>
 
