@@ -49,9 +49,11 @@
 
     <!-- =========================== OVERHEAD CAMERA =========================== -->
     <!-- Simple overhead camera looking straight down at table -->
+    <!-- Camera in Gazebo looks along +X axis by default -->
+    <!-- To look DOWN: rotate pitch by -90 degrees (-1.5708 rad) -->
     <model name="overhead_camera">
       <static>true</static>
-      <pose>0.35 0 1.5 0 1.5708 0</pose>
+      <pose>0.35 0 1.2 0 1.5708 0</pose>
       <link name="camera_link">
         <visual name="visual">
           <geometry>
@@ -65,7 +67,7 @@
           </material>
         </visual>
         <sensor type="camera" name="overhead_camera_sensor">
-          <pose>0 0 0 0 0 0</pose>
+          <pose>0 0 0 -1.5708 0 -1.5708</pose>
           <update_rate>30.0</update_rate>
           <camera name="head">
             <horizontal_fov>1.2</horizontal_fov>
