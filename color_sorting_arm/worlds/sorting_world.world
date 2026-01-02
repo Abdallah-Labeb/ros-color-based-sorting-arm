@@ -115,8 +115,8 @@
               <format>R8G8B8</format>
             </image>
             <clip>
-              <near>0.02</near>
-              <far>5.0</far>
+              <near>0.1</near>
+              <far>3.0</far>
             </clip>
           </camera>
           <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
@@ -126,6 +126,10 @@
             <imageTopicName>image_raw</imageTopicName>
             <cameraInfoTopicName>camera_info</cameraInfoTopicName>
             <frameName>camera_link</frameName>
+            <CxPrime>0</CxPrime>
+            <Cx>320.5</Cx>
+            <Cy>240.5</Cy>
+            <focalLength>0</focalLength>
             <hackBaseline>0.0</hackBaseline>
             <distortionK1>0.0</distortionK1>
             <distortionK2>0.0</distortionK2>
