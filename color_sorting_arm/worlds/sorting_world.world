@@ -49,13 +49,14 @@
 
     <!-- =========================== OVERHEAD CAMERA =========================== -->
     <!-- Camera positioned above table center, looking straight down -->
-    <!-- In Gazebo SDF, camera looks along +X axis in its local frame -->
-    <!-- Model pose: x y z roll pitch yaw -->
-    <!-- pitch = +90deg (1.5708) rotates +X to point DOWN (-Z world) -->
+    <!-- Gazebo camera default: looks along +X, up is -Z in camera frame -->
+    <!-- To point camera DOWN at table: -->
+    <!--   1. pitch = PI/2 (90deg) rotates +X axis to point down (-Z world) -->
+    <!--   2. But camera "up" direction needs fixing, so roll = PI (180deg) -->
+    <!-- Final pose: x y z roll pitch yaw = 0.35 0 1.0 3.14159 1.5708 0 -->
     <model name="overhead_camera">
       <static>true</static>
-      <!-- Position above table center at height 1.0m, pitched down 90 degrees -->
-      <pose>0.35 0 1.0 0 1.5708 0</pose>
+      <pose>0.35 0 1.0 3.14159 1.5708 0</pose>
       <link name="camera_link">
         <inertial>
           <mass>0.1</mass>
@@ -67,7 +68,8 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.2 0.2 0.2 1</ambient>
+            <ambient>0.8 0.2 0.2 1</ambient>
+            <diffuse>0.8 0.2 0.2 1</diffuse>
           </material>
         </visual>
         <sensor type="camera" name="camera_sensor">
