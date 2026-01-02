@@ -17,16 +17,16 @@ class SortingController:
     
     # Sorting bin locations (x, y, z) in base_link frame
     BIN_LOCATIONS = {
-        'red': (0.1, 0.25, 0.08),    # Left bin
-        'blue': (0.1, -0.25, 0.08),  # Right bin
-        'green': (0.4, 0.0, 0.08)    # Front bin
+        'red': (0.2, 0.35, 0.03),    # Left bin
+        'blue': (0.2, -0.35, 0.03),  # Right bin
+        'green': (0.45, 0.0, 0.03)   # Far bin
     }
     
-    # Robot arm parameters
-    L1 = 0.13   # base_link to link1 + link1 height
-    L2 = 0.15   # link2 length (shoulder to elbow)
-    L3 = 0.15   # link3 length (elbow to wrist)
-    L4 = 0.12   # link4 + link5 + gripper
+    # Robot arm parameters (matches URDF link lengths)
+    L1 = 0.09   # base_link(0.04) + link1(0.05) = 0.09
+    L2 = 0.08   # link2 length
+    L3 = 0.07   # link3 length
+    L4 = 0.10   # link4(0.05) + link5(0.03) + gripper(0.02)
     
     def __init__(self):
         rospy.init_node('sorting_controller')
@@ -58,14 +58,76 @@ class SortingController:
         # Wait for connections
         rospy.sleep(2.0)
         
+        # Perform startup test movements
+        self.startup_test()
+        
         # Move to home position
         self.move_to_home()
-        rospy.sleep(2.0)
+        rospy.sleep(1.0)
         
         # Main control loop
         self.control_timer = rospy.Timer(rospy.Duration(0.5), self.control_loop)
         
         rospy.loginfo("Sorting Controller initialized successfully!")
+    
+    def startup_test(self):
+        """
+        Perform test movements on startup to verify arm is working.
+        This helps confirm the arm is operational.
+        """
+        rospy.loginfo("=" * 50)
+        rospy.loginfo("STARTUP TEST: Performing test movements...")
+        rospy.loginfo("=" * 50)
+        
+        # Test 1: Move to neutral position
+        rospy.loginfo("Test 1: Moving to neutral position...")
+        neutral = [0.0, 0.0, 0.0, 0.0, 0.0]
+        self.set_joint_positions(neutral, 2.0)
+        
+        # Test 2: Rotate base left
+        rospy.loginfo("Test 2: Rotating base left...")
+        self.set_joint_positions([0.8, 0.0, 0.0, 0.0, 0.0], 1.5)
+        
+        # Test 3: Rotate base right
+        rospy.loginfo("Test 3: Rotating base right...")
+        self.set_joint_positions([-0.8, 0.0, 0.0, 0.0, 0.0], 1.5)
+        
+        # Test 4: Return to center
+        rospy.loginfo("Test 4: Returning to center...")
+        self.set_joint_positions([0.0, 0.0, 0.0, 0.0, 0.0], 1.5)
+        
+        # Test 5: Bend forward (shoulder)
+        rospy.loginfo("Test 5: Bending shoulder forward...")
+        self.set_joint_positions([0.0, 1.0, 0.0, 0.0, 0.0], 1.5)
+        
+        # Test 6: Bend elbow
+        rospy.loginfo("Test 6: Bending elbow...")
+        self.set_joint_positions([0.0, 1.0, -1.5, 0.0, 0.0], 1.5)
+        
+        # Test 7: Bend wrist
+        rospy.loginfo("Test 7: Bending wrist...")
+        self.set_joint_positions([0.0, 1.0, -1.5, -0.5, 0.0], 1.5)
+        
+        # Test 8: Test gripper
+        rospy.loginfo("Test 8: Testing gripper open...")
+        self.open_gripper()
+        rospy.sleep(0.5)
+        
+        rospy.loginfo("Test 9: Testing gripper close...")
+        self.close_gripper()
+        rospy.sleep(0.5)
+        
+        self.open_gripper()
+        
+        # Test 10: Wave motion
+        rospy.loginfo("Test 10: Performing wave motion...")
+        for _ in range(2):
+            self.set_joint_positions([0.5, 0.5, -1.0, 0.0, 0.0], 0.8)
+            self.set_joint_positions([-0.5, 0.5, -1.0, 0.0, 0.0], 0.8)
+        
+        rospy.loginfo("=" * 50)
+        rospy.loginfo("STARTUP TEST COMPLETE! Arm is working correctly.")
+        rospy.loginfo("=" * 50)
     
     def joint_state_callback(self, msg):
         """Update current joint positions from joint states."""
@@ -100,24 +162,25 @@ class SortingController:
     def open_gripper(self):
         """Open the gripper."""
         rospy.loginfo("Opening gripper...")
-        self.gripper_left_pub.publish(Float64(0.02))
-        self.gripper_right_pub.publish(Float64(0.02))
+        self.gripper_left_pub.publish(Float64(0.015))
+        self.gripper_right_pub.publish(Float64(0.015))
         self.gripper_open = True
         rospy.sleep(0.5)
     
     def close_gripper(self):
         """Close the gripper to grasp object."""
         rospy.loginfo("Closing gripper...")
-        self.gripper_left_pub.publish(Float64(0.005))
-        self.gripper_right_pub.publish(Float64(0.005))
+        self.gripper_left_pub.publish(Float64(0.003))
+        self.gripper_right_pub.publish(Float64(0.003))
         self.gripper_open = False
         rospy.sleep(0.5)
     
     def move_to_home(self):
         """Move arm to home/observation position."""
         rospy.loginfo("Moving to home position...")
-        # Home position: arm looking forward and slightly down
-        home = [0.0, 0.3, -0.5, 0.2, 0.0]
+        # Home position: arm bent forward ready to pick
+        # joint2 tilts forward, joint3 bends down
+        home = [0.0, 0.6, -1.0, -0.3, 0.0]
         self.set_joint_positions(home, 2.0)
         self.open_gripper()
     

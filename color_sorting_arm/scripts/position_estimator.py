@@ -36,8 +36,8 @@ class PositionEstimator:
         # Publisher for 3D positions
         self.position_pub = rospy.Publisher('/object_positions', Object3DArray, queue_size=10)
         
-        # Subscribers
-        rospy.Subscriber('/arm_camera/camera_info', CameraInfo, self.camera_info_callback)
+        # Subscribers - Updated to use separate camera topic
+        rospy.Subscriber('/camera/camera_info', CameraInfo, self.camera_info_callback)
         rospy.Subscriber('/detected_objects', DetectedObjectArray, self.detection_callback)
         
         rospy.loginfo("Position Estimator initialized")

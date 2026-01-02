@@ -39,8 +39,8 @@ class ColorDetector:
         self.detection_pub = rospy.Publisher('/detected_objects', DetectedObjectArray, queue_size=10)
         self.image_pub = rospy.Publisher('/detection_image', Image, queue_size=10)
         
-        # Subscriber
-        self.image_sub = rospy.Subscriber('/arm_camera/image_raw', Image, self.image_callback)
+        # Subscriber - Updated to use separate camera topic
+        self.image_sub = rospy.Subscriber('/camera/image_raw', Image, self.image_callback)
         
         rospy.loginfo("Color Detector Node initialized")
     
