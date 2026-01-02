@@ -103,8 +103,8 @@
         
         <!-- Camera sensor pointing DOWN -->
         <sensor type="camera" name="camera_sensor">
-          <!-- Sensor rotated: pitch=-90deg makes camera look DOWN (-Z) -->
-          <pose>0 0 -0.08 0 -1.5708 0</pose>
+          <!-- Sensor rotated: pitch=+90deg makes camera look DOWN (-Z) -->
+          <pose>0 0 -0.08 0 1.5708 0</pose>
           <update_rate>30.0</update_rate>
           <visualize>true</visualize>
           <camera name="overhead_cam">
