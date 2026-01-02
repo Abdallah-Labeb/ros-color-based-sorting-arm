@@ -48,11 +48,12 @@
     </model>
 
     <!-- =========================== OVERHEAD CAMERA =========================== -->
-    <!-- Camera with clear visual design to show lens direction -->
-    <!-- Body = blue box, Lens = red cylinder pointing out -->
+    <!-- Camera attached to pole, lens pointing DOWN at table -->
+    <!-- Body = blue box, Lens = red cylinder -->
+    <!-- Pitch=90deg rotates camera so lens (red) points DOWN -->
     <model name="overhead_camera">
       <static>true</static>
-      <pose>0.35 0 1.5 0 0 0</pose>
+      <pose>0.35 0 1.2 0 1.5708 0</pose>
       <link name="camera_link">
         <inertial>
           <mass>0.5</mass>
