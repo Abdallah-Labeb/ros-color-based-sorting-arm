@@ -87,11 +87,11 @@
         </visual>
         
         <sensor type="camera" name="camera">
-          <!-- Camera looking DOWN: roll=180 flips it upside down, then it looks down -->
-          <pose>0 0 -0.08 3.14159 0 0</pose>
+          <!-- Camera looking DOWN: pitch=1.5708 (90 degrees) points camera downward -->
+          <pose>0 0 -0.08 0 1.5708 0</pose>
           <always_on>1</always_on>
           <visualize>true</visualize>
-          <update_rate>30</update_rate>
+          <update_rate>30.0</update_rate>
           <camera>
             <horizontal_fov>1.2</horizontal_fov>
             <image>
