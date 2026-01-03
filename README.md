@@ -1,8 +1,4 @@
-# Color Sorting Robotic Arm - ROS1 Project
-
-## Robotic Arm for Color-Based Cube Sorting Using ROS1
-
----
+# Robotic Arm for Color-Based Cube Sorting Using ROS1
 
 ## Project Description
 
@@ -365,5 +361,3 @@ MIT License
 - [ROS Control](http://wiki.ros.org/ros_control)
 
 ---
-
-**Last Updated:** January 2026
