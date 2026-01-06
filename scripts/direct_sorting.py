@@ -28,6 +28,7 @@ class DirectSorting:
     L2 = 0.25
     L3 = 0.20
     L4 = 0.12
+    WRIST_PITCH = -1.57  # target end-effector pitch (downwards)
     
     def __init__(self):
         rospy.init_node('direct_sorting')
@@ -86,7 +87,7 @@ class DirectSorting:
         beta = math.atan2(self.L3 * math.sin(j3), self.L2 + self.L3 * math.cos(j3))
         j2 = alpha - beta
         
-        j4 = -(j2 + j3)
+        j4 = self.WRIST_PITCH - (j2 + j3)
         j5 = 0.0
         
         return [j1, j2, j3, j4, j5]
