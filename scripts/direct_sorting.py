@@ -23,7 +23,7 @@ class DirectSorting:
         'green': (0.35, 0.0, 0.75)
     }
     
-    BASE_Z = 0.725
+    BASE_Z = 0.7
     L1 = 0.11
     L2 = 0.25
     L3 = 0.20
@@ -100,13 +100,13 @@ class DirectSorting:
         return True
     
     def open_gripper(self):
-        self.gripper_left_pub.publish(Float64(0.02))
-        self.gripper_right_pub.publish(Float64(0.02))
+        self.gripper_left_pub.publish(Float64(0.06))
+        self.gripper_right_pub.publish(Float64(0.06))
         rospy.sleep(0.5)
     
     def close_gripper(self):
-        self.gripper_left_pub.publish(Float64(0.005))
-        self.gripper_right_pub.publish(Float64(0.005))
+        self.gripper_left_pub.publish(Float64(0.0))
+        self.gripper_right_pub.publish(Float64(0.0))
         rospy.sleep(0.5)
     
     def move_to_home(self):
@@ -123,20 +123,20 @@ class DirectSorting:
         
         rospy.loginfo(f"Picking {cube_name} at ({x:.2f}, {y:.2f}, {z:.2f})")
         
-        approach_z = z + 0.05
+        approach_z = z + 0.03
         joints = self.inverse_kinematics(x, y, approach_z)
         if not self.move_joints(joints, 2.0):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.025)
+        joints = self.inverse_kinematics(x, y, z - 0.005)
         if not self.move_joints(joints, 1.5):
             return False
         
         self.close_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.05)
+        joints = self.inverse_kinematics(x, y, z + 0.03)
         self.move_joints(joints, 1.0)
         
         return True
@@ -146,18 +146,18 @@ class DirectSorting:
         
         rospy.loginfo(f"Placing in {color} bin at ({x:.2f}, {y:.2f}, {z:.2f})")
         
-        approach_z = z + 0.05
+        approach_z = z + 0.03
         joints = self.inverse_kinematics(x, y, approach_z)
         if not self.move_joints(joints, 2.0):
             return False
         
-        joints = self.inverse_kinematics(x, y, z + 0.03)
+        joints = self.inverse_kinematics(x, y, z)
         if not self.move_joints(joints, 1.5):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.05)
+        joints = self.inverse_kinematics(x, y, z + 0.03)
         self.move_joints(joints, 1.0)
         
         return True
