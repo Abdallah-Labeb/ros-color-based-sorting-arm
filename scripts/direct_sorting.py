@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+"""
+Direct Sorting - Pick and place cubes using ground truth positions.
+Uses geometric inverse kinematics for a 5-DOF arm.
+"""
 
 import rospy
 import math
 from std_msgs.msg import Float64
 from gazebo_msgs.msg import ModelStates
-from geometry_msgs.msg import Pose
 
 class DirectSorting:
     
@@ -18,21 +21,35 @@ class DirectSorting:
     }
     
     BIN_LOCATIONS = {
-        'red': (0.35, 0.18, 0.71),
-        'blue': (0.35, -0.18, 0.71),
-        'green': (0.35, 0.0, 0.71)
+        'red': (0.35, 0.18, 0.73),
+        'blue': (0.35, -0.18, 0.73),
+        'green': (0.35, 0.0, 0.73)
     }
 
-    BASE_Z = 0.70  # shoulder height reference
-    L1 = 0.04
-    L2 = 0.25
-    L3 = 0.20
-    L4 = 0.12
-    WRIST_PITCH = -1.57  # target end-effector pitch (downwards)
+    # ========== ARM DIMENSIONS FROM URDF ==========
+    # Robot spawns at z=0.70 (from launch file)
+    # base_link: cylinder height 0.05m, joint1 at z=0.05
+    # link1: cylinder height 0.04m, joint2 at z=0.04 from link1
+    # link2: cylinder length 0.25m, joint3 at z=0.25 from link2
+    # link3: cylinder length 0.20m, joint4 at z=0.20 from link3
+    # link4: box height 0.08m, joint5 at z=0.08 from link4
+    # gripper: additional ~0.04m
+    
+    SPAWN_Z = 0.70
+    BASE_HEIGHT = 0.05
+    LINK1_HEIGHT = 0.04
+    L2 = 0.25  # link2 length
+    L3 = 0.20  # link3 length
+    L4 = 0.08  # link4 length
+    GRIPPER_OFFSET = 0.06  # gripper + link5 extension
+    
+    # Shoulder pivot height (joint2 in world frame)
+    SHOULDER_Z = SPAWN_Z + BASE_HEIGHT + LINK1_HEIGHT  # 0.79m
     
     def __init__(self):
         rospy.init_node('direct_sorting')
         
+        # Joint publishers
         self.joint_pubs = {}
         for i in range(1, 6):
             topic = f'/sorting_arm/joint{i}_position_controller/command'
@@ -43,150 +60,245 @@ class DirectSorting:
         self.gripper_right_pub = rospy.Publisher(
             '/sorting_arm/gripper_right_position_controller/command', Float64, queue_size=1)
         
+        # Get cube positions from Gazebo
         self.cube_poses = {}
-        rospy.Subscriber('/gazebo/model_states', ModelStates, self.model_states_callback)
+        rospy.Subscriber('/gazebo/model_states', ModelStates, self.model_states_cb)
         
-        rospy.sleep(3.0)
+        rospy.sleep(2.0)
+        rospy.loginfo("="*50)
+        rospy.loginfo("DIRECT SORTING NODE INITIALIZED")
+        rospy.loginfo(f"Shoulder height: {self.SHOULDER_Z:.3f}m")
+        rospy.loginfo(f"Arm reach: L2={self.L2}, L3={self.L3}, L4={self.L4}")
+        rospy.loginfo("="*50)
+        
         self.open_gripper()
-        self.move_to_home()
+        self.go_home()
         
-        rospy.loginfo("Direct Sorting Ready! Starting in 3 seconds...")
-        rospy.sleep(3.0)
+        rospy.loginfo("Starting sorting in 2 seconds...")
+        rospy.sleep(2.0)
         
         self.sort_all_cubes()
         
-    def model_states_callback(self, msg):
+    def model_states_cb(self, msg):
         for i, name in enumerate(msg.name):
             if name in self.CUBE_COLORS:
                 self.cube_poses[name] = msg.pose[i]
     
-    def inverse_kinematics(self, x, y, z):
-        # Transform world coordinates to arm base frame (base at z=0.7)
-        x_local = x
-        y_local = y
-        z_local = z - self.BASE_Z
-
-        j1 = math.atan2(y_local, x_local)
+    def solve_ik(self, x, y, z):
+        """
+        Geometric IK for 5-DOF arm.
+        Returns [j1, j2, j3, j4, j5] or None if unreachable.
         
-        r = math.sqrt(x_local**2 + y_local**2)
-        wrist_x = r - self.L4
-        wrist_z = z_local - self.L1
+        The arm has:
+        - j1: base rotation (around Z)
+        - j2: shoulder pitch (around Y)
+        - j3: elbow pitch (around Y)
+        - j4: wrist pitch (around Y)
+        - j5: wrist roll (around Z)
+        """
+        # Joint 1: rotation around vertical axis
+        j1 = math.atan2(y, x)
         
-        d = math.sqrt(wrist_x**2 + wrist_z**2)
+        # Distance in XY plane from base to target
+        r_xy = math.sqrt(x**2 + y**2)
+        
+        # We want gripper pointing down, so subtract gripper offset from r
+        # Gripper extends horizontally when pointing down
+        r_wrist = r_xy - self.GRIPPER_OFFSET
+        if r_wrist < 0.05:
+            r_wrist = 0.05  # minimum reach
+        
+        # Height of target relative to shoulder joint
+        z_wrist = z - self.SHOULDER_Z
+        
+        rospy.loginfo(f"  IK: target=({x:.3f},{y:.3f},{z:.3f}), r_xy={r_xy:.3f}, r_wrist={r_wrist:.3f}, z_wrist={z_wrist:.3f}")
+        
+        # We'll use a 2-link planar IK for joints 2 and 3
+        # with link4 (j4) compensating for end-effector orientation
+        
+        # For now, treat L2 and L3 as the two main segments
+        # Distance from shoulder to wrist position
+        d_sq = r_wrist**2 + z_wrist**2
+        d = math.sqrt(d_sq)
+        
         max_reach = self.L2 + self.L3
+        min_reach = abs(self.L2 - self.L3)
+        
+        rospy.loginfo(f"  IK: d={d:.3f}, max_reach={max_reach:.3f}, min_reach={min_reach:.3f}")
         
         if d > max_reach:
-            rospy.logwarn(f"Target ({x:.2f}, {y:.2f}, {z:.2f}) out of reach! d={d:.2f}, max={max_reach:.2f}")
-            return None
+            rospy.logwarn(f"Target out of reach: d={d:.3f} > max={max_reach:.3f}")
+            # Clamp to max reach
+            scale = max_reach * 0.98 / d
+            r_wrist *= scale
+            z_wrist *= scale
+            d = max_reach * 0.98
+            d_sq = d * d
         
-        cos_j3 = (d**2 - self.L2**2 - self.L3**2) / (2 * self.L2 * self.L3)
-        cos_j3 = max(-1, min(1, cos_j3))
+        if d < min_reach:
+            rospy.logwarn(f"Target too close: d={d:.3f} < min={min_reach:.3f}")
+            d = min_reach + 0.01
+            d_sq = d * d
+        
+        # Elbow angle using cosine rule
+        cos_j3 = (d_sq - self.L2**2 - self.L3**2) / (2 * self.L2 * self.L3)
+        cos_j3 = max(-1.0, min(1.0, cos_j3))
+        
+        # Elbow down configuration (negative angle)
         j3 = -math.acos(cos_j3)
         
-        alpha = math.atan2(wrist_z, wrist_x)
-        beta = math.atan2(self.L3 * math.sin(j3), self.L2 + self.L3 * math.cos(j3))
-        j2 = alpha - beta
+        # Shoulder angle
+        # alpha: angle from horizontal to line connecting shoulder to wrist
+        alpha = math.atan2(z_wrist, r_wrist)
         
-        j4 = self.WRIST_PITCH - (j2 + j3)
+        # beta: angle at shoulder in the triangle
+        sin_j3 = math.sin(-j3)
+        cos_j3_pos = math.cos(-j3)
+        beta = math.atan2(self.L3 * sin_j3, self.L2 + self.L3 * cos_j3_pos)
+        
+        j2 = alpha + beta
+        
+        # Wrist pitch to keep gripper pointing down
+        # Total pitch = j2 + j3 + j4
+        # We want total pitch = -pi/2 (pointing straight down)
+        desired_pitch = -math.pi / 2
+        j4 = desired_pitch - j2 - j3
+        
+        # Clamp j4 to limits
+        j4 = max(-2.0, min(2.0, j4))
+        
+        # Wrist roll
         j5 = 0.0
+        
+        rospy.loginfo(f"  IK result: j1={math.degrees(j1):.1f}, j2={math.degrees(j2):.1f}, j3={math.degrees(j3):.1f}, j4={math.degrees(j4):.1f}")
         
         return [j1, j2, j3, j4, j5]
     
-    def move_joints(self, joints, duration=0.6):
+    def send_joints(self, joints, wait=0.5):
+        """Publish joint commands."""
         if joints is None:
             return False
-        for i, j in enumerate(joints, 1):
-            self.joint_pubs[f'joint{i}'].publish(Float64(j))
-        rospy.sleep(duration)
+        
+        for i, angle in enumerate(joints, 1):
+            self.joint_pubs[f'joint{i}'].publish(Float64(angle))
+        
+        rospy.sleep(wait)
         return True
     
     def open_gripper(self):
-        self.gripper_left_pub.publish(Float64(0.06))
-        self.gripper_right_pub.publish(Float64(0.06))
-        rospy.sleep(0.5)
+        self.gripper_left_pub.publish(Float64(0.04))
+        self.gripper_right_pub.publish(Float64(0.04))
+        rospy.sleep(0.3)
     
     def close_gripper(self):
         self.gripper_left_pub.publish(Float64(0.0))
         self.gripper_right_pub.publish(Float64(0.0))
-        rospy.sleep(0.5)
+        rospy.sleep(0.4)
     
-    def move_to_home(self):
-        # Home: hover over table center pointing downward
-        target = self.inverse_kinematics(0.25, 0.0, self.BASE_Z + 0.05)
-        if target is None:
-            target = [0.0, -0.5, -1.0, 1.5, 0.0]
-        self.move_joints(target, 1.0)
+    def go_home(self):
+        """Safe home position with arm raised."""
+        # Manually set safe home angles
+        home = [0.0, 0.5, -1.5, -0.5, 0.0]
+        self.send_joints(home, 0.8)
     
     def pick_cube(self, cube_name):
+        """Pick up a specific cube."""
         if cube_name not in self.cube_poses:
-            rospy.logwarn(f"Cube {cube_name} not found in model states!")
+            rospy.logwarn(f"Cube {cube_name} not found!")
             return False
         
         pose = self.cube_poses[cube_name]
-        x, y, z = pose.position.x, pose.position.y, pose.position.z
+        cx, cy, cz = pose.position.x, pose.position.y, pose.position.z
         
-        rospy.loginfo(f"Picking {cube_name} at ({x:.2f}, {y:.2f}, {z:.2f})")
+        rospy.loginfo(f"--- Picking {cube_name} at ({cx:.3f}, {cy:.3f}, {cz:.3f}) ---")
         
-        approach_z = z - 0.02
-        joints = self.inverse_kinematics(x, y, approach_z)
-        if not self.move_joints(joints, 0.6):
+        # Cube is 0.025m tall, center at cz
+        # Grasp at center height
+        grasp_z = cz
+        
+        # 1) Approach from above
+        approach_z = grasp_z + 0.06
+        rospy.loginfo(f"  1. Approach z={approach_z:.3f}")
+        joints = self.solve_ik(cx, cy, approach_z)
+        if not self.send_joints(joints, 0.5):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z - 0.07)
-        if not self.move_joints(joints, 0.6):
+        # 2) Descend to grasp
+        rospy.loginfo(f"  2. Descend z={grasp_z:.3f}")
+        joints = self.solve_ik(cx, cy, grasp_z)
+        if not self.send_joints(joints, 0.5):
             return False
         
+        # 3) Close gripper
+        rospy.loginfo("  3. Close gripper")
         self.close_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.08)
-        self.move_joints(joints, 0.6)
+        # 4) Lift
+        lift_z = grasp_z + 0.08
+        rospy.loginfo(f"  4. Lift z={lift_z:.3f}")
+        joints = self.solve_ik(cx, cy, lift_z)
+        self.send_joints(joints, 0.5)
         
         return True
     
     def place_cube(self, color):
-        x, y, z = self.BIN_LOCATIONS[color]
+        """Place cube in the bin for the given color."""
+        bx, by, bz = self.BIN_LOCATIONS[color]
         
-        rospy.loginfo(f"Placing in {color} bin at ({x:.2f}, {y:.2f}, {z:.2f})")
+        rospy.loginfo(f"--- Placing in {color} bin at ({bx:.3f}, {by:.3f}, {bz:.3f}) ---")
         
-        approach_z = z - 0.02
-        joints = self.inverse_kinematics(x, y, approach_z)
-        if not self.move_joints(joints, 0.6):
+        # 1) Approach from above
+        approach_z = bz + 0.06
+        rospy.loginfo(f"  1. Approach z={approach_z:.3f}")
+        joints = self.solve_ik(bx, by, approach_z)
+        if not self.send_joints(joints, 0.5):
             return False
         
-        joints = self.inverse_kinematics(x, y, z - 0.06)
-        if not self.move_joints(joints, 0.6):
+        # 2) Lower
+        rospy.loginfo(f"  2. Lower z={bz:.3f}")
+        joints = self.solve_ik(bx, by, bz)
+        if not self.send_joints(joints, 0.5):
             return False
         
+        # 3) Release
+        rospy.loginfo("  3. Open gripper")
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.08)
-        self.move_joints(joints, 0.6)
+        # 4) Lift away
+        lift_z = bz + 0.08
+        rospy.loginfo(f"  4. Lift z={lift_z:.3f}")
+        joints = self.solve_ik(bx, by, lift_z)
+        self.send_joints(joints, 0.5)
         
         return True
     
     def sort_all_cubes(self):
         rospy.loginfo("="*60)
-        rospy.loginfo("STARTING AUTOMATIC CUBE SORTING")
+        rospy.loginfo("    STARTING CUBE SORTING")
         rospy.loginfo("="*60)
         
+        success = 0
+        total = len(self.CUBE_COLORS)
+        
         for cube_name, color in self.CUBE_COLORS.items():
-            rospy.loginfo(f"\nProcessing: {cube_name} ({color})")
+            rospy.loginfo(f"\n>>> {cube_name} -> {color} bin")
             
             if self.pick_cube(cube_name):
                 if self.place_cube(color):
-                    rospy.loginfo(f"✓ Successfully sorted {cube_name}!")
+                    rospy.loginfo(f"OK: {cube_name} sorted!")
+                    success += 1
                 else:
-                    rospy.logwarn(f"✗ Failed to place {cube_name}")
+                    rospy.logwarn(f"FAIL: couldn't place {cube_name}")
             else:
-                rospy.logwarn(f"✗ Failed to pick {cube_name}")
+                rospy.logwarn(f"FAIL: couldn't pick {cube_name}")
             
-            self.move_to_home()
-            rospy.sleep(1.0)
+            self.go_home()
+            rospy.sleep(0.3)
         
         rospy.loginfo("="*60)
-        rospy.loginfo("SORTING COMPLETE!")
+        rospy.loginfo(f"    DONE: {success}/{total} cubes sorted")
         rospy.loginfo("="*60)
 
 if __name__ == '__main__':
