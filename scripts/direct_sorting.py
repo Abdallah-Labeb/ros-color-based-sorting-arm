@@ -40,8 +40,8 @@ class DirectSorting:
     LINK1_HEIGHT = 0.04
     L2 = 0.25  # link2 length
     L3 = 0.20  # link3 length
-    L4 = 0.08  # link4 length
-    GRIPPER_OFFSET = 0.06  # gripper + link5 extension
+    L4 = 0.08  # link4 length (wrist)
+    L5_GRIPPER = 0.08  # link5 + gripper tip length
     
     # Shoulder pivot height (joint2 in world frame)
     SHOULDER_Z = SPAWN_Z + BASE_HEIGHT + LINK1_HEIGHT  # 0.79m
@@ -86,15 +86,11 @@ class DirectSorting:
     
     def solve_ik(self, x, y, z):
         """
-        Geometric IK for 5-DOF arm.
-        Returns [j1, j2, j3, j4, j5] or None if unreachable.
+        Geometric IK for 5-DOF arm with gripper pointing DOWN.
         
-        The arm has:
-        - j1: base rotation (around Z)
-        - j2: shoulder pitch (around Y)
-        - j3: elbow pitch (around Y)
-        - j4: wrist pitch (around Y)
-        - j5: wrist roll (around Z)
+        When gripper points down:
+        - L4 and gripper extend VERTICALLY downward
+        - So we subtract them from Z, not from R
         """
         # Joint 1: rotation around vertical axis
         j1 = math.atan2(y, x)
@@ -102,75 +98,67 @@ class DirectSorting:
         # Distance in XY plane from base to target
         r_xy = math.sqrt(x**2 + y**2)
         
-        # We want gripper pointing down, so subtract gripper offset from r
-        # Gripper extends horizontally when pointing down
-        r_wrist = r_xy - self.GRIPPER_OFFSET
-        if r_wrist < 0.05:
-            r_wrist = 0.05  # minimum reach
+        # When gripper points down, L4 + gripper are vertical
+        # The wrist (joint4) needs to be directly above the target
+        # So horizontal distance to wrist = same as target
+        r_wrist = r_xy
         
-        # Height of target relative to shoulder joint
-        z_wrist = z - self.SHOULDER_Z
+        # Vertical: target z + L4 + gripper = wrist z
+        # wrist_z (from shoulder) = (target_z + L4 + L5) - shoulder_z
+        wrist_z_world = z + self.L4 + self.L5_GRIPPER
+        z_wrist = wrist_z_world - self.SHOULDER_Z
         
-        rospy.loginfo(f"  IK: target=({x:.3f},{y:.3f},{z:.3f}), r_xy={r_xy:.3f}, r_wrist={r_wrist:.3f}, z_wrist={z_wrist:.3f}")
+        rospy.loginfo(f"  IK: target=({x:.3f},{y:.3f},{z:.3f}), wrist_world_z={wrist_z_world:.3f}")
+        rospy.loginfo(f"  IK: r_wrist={r_wrist:.3f}, z_wrist={z_wrist:.3f}")
         
-        # We'll use a 2-link planar IK for joints 2 and 3
-        # with link4 (j4) compensating for end-effector orientation
-        
-        # For now, treat L2 and L3 as the two main segments
-        # Distance from shoulder to wrist position
+        # Distance from shoulder to wrist
         d_sq = r_wrist**2 + z_wrist**2
         d = math.sqrt(d_sq)
         
         max_reach = self.L2 + self.L3
         min_reach = abs(self.L2 - self.L3)
         
-        rospy.loginfo(f"  IK: d={d:.3f}, max_reach={max_reach:.3f}, min_reach={min_reach:.3f}")
+        rospy.loginfo(f"  IK: d={d:.3f}, max_reach={max_reach:.3f}")
         
-        if d > max_reach:
+        if d > max_reach * 0.98:
             rospy.logwarn(f"Target out of reach: d={d:.3f} > max={max_reach:.3f}")
-            # Clamp to max reach
-            scale = max_reach * 0.98 / d
+            scale = max_reach * 0.95 / d
             r_wrist *= scale
             z_wrist *= scale
-            d = max_reach * 0.98
+            d = max_reach * 0.95
             d_sq = d * d
         
-        if d < min_reach:
-            rospy.logwarn(f"Target too close: d={d:.3f} < min={min_reach:.3f}")
-            d = min_reach + 0.01
+        if d < min_reach + 0.01:
+            d = min_reach + 0.02
             d_sq = d * d
         
         # Elbow angle using cosine rule
         cos_j3 = (d_sq - self.L2**2 - self.L3**2) / (2 * self.L2 * self.L3)
         cos_j3 = max(-1.0, min(1.0, cos_j3))
         
-        # Elbow down configuration (negative angle)
+        # Elbow down (negative angle for arm to fold down)
         j3 = -math.acos(cos_j3)
         
         # Shoulder angle
-        # alpha: angle from horizontal to line connecting shoulder to wrist
         alpha = math.atan2(z_wrist, r_wrist)
-        
-        # beta: angle at shoulder in the triangle
-        sin_j3 = math.sin(-j3)
-        cos_j3_pos = math.cos(-j3)
-        beta = math.atan2(self.L3 * sin_j3, self.L2 + self.L3 * cos_j3_pos)
+        sin_j3_abs = math.sin(abs(j3))
+        cos_j3_abs = math.cos(abs(j3))
+        beta = math.atan2(self.L3 * sin_j3_abs, self.L2 + self.L3 * cos_j3_abs)
         
         j2 = alpha + beta
         
-        # Wrist pitch to keep gripper pointing down
-        # Total pitch = j2 + j3 + j4
-        # We want total pitch = -pi/2 (pointing straight down)
+        # Wrist pitch: we want gripper pointing straight down (-90 deg from horizontal)
+        # Total arm angle = j2 + j3
+        # j4 compensates to make total = -pi/2
         desired_pitch = -math.pi / 2
         j4 = desired_pitch - j2 - j3
         
-        # Clamp j4 to limits
+        # Clamp j4
         j4 = max(-2.0, min(2.0, j4))
         
-        # Wrist roll
         j5 = 0.0
         
-        rospy.loginfo(f"  IK result: j1={math.degrees(j1):.1f}, j2={math.degrees(j2):.1f}, j3={math.degrees(j3):.1f}, j4={math.degrees(j4):.1f}")
+        rospy.loginfo(f"  IK result: j2={math.degrees(j2):.1f}, j3={math.degrees(j3):.1f}, j4={math.degrees(j4):.1f}")
         
         return [j1, j2, j3, j4, j5]
     
