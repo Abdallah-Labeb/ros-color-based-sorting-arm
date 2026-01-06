@@ -18,11 +18,12 @@ class DirectSorting:
     }
     
     BIN_LOCATIONS = {
-        'red': (0.30, 0.15, 0.83),
-        'blue': (0.30, -0.15, 0.83),
-        'green': (0.30, 0.0, 0.83)
+        'red': (0.35, 0.18, 0.75),
+        'blue': (0.35, -0.18, 0.75),
+        'green': (0.35, 0.0, 0.75)
     }
     
+    BASE_Z = 0.7
     L1 = 0.11
     L2 = 0.25
     L3 = 0.20
@@ -59,11 +60,16 @@ class DirectSorting:
                 self.cube_poses[name] = msg.pose[i]
     
     def inverse_kinematics(self, x, y, z):
-        j1 = math.atan2(y, x)
+        # Transform world coordinates to arm base frame (base at z=0.7)
+        x_local = x
+        y_local = y
+        z_local = z - self.BASE_Z
+
+        j1 = math.atan2(y_local, x_local)
         
-        r = math.sqrt(x**2 + y**2)
-        wrist_x = r - self.L4 * math.cos(0)
-        wrist_z = z - self.L1 - self.L4 * math.sin(0)
+        r = math.sqrt(x_local**2 + y_local**2)
+        wrist_x = r - self.L4
+        wrist_z = z_local - self.L1
         
         d = math.sqrt(wrist_x**2 + wrist_z**2)
         max_reach = self.L2 + self.L3
