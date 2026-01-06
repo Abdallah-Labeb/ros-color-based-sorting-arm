@@ -40,11 +40,17 @@ class DirectSorting:
         self.gripper_right_pub = rospy.Publisher(
             '/sorting_arm/gripper_right_position_controller/command', Float64, queue_size=1)
         
-        rospy.sleep(2.0)
+        rospy.sleep(3.0)
         
+        rospy.loginfo("Opening gripper...")
         self.open_gripper()
+        
+        rospy.loginfo("Moving to home position...")
         self.move_to_home()
-        rospy.sleep(2.0)
+        rospy.sleep(3.0)
+        
+        rospy.loginfo("Waiting 5 seconds before starting sorting...")
+        rospy.sleep(5.0)
         
         self.sort_all_cubes()
     
@@ -68,6 +74,8 @@ class DirectSorting:
         self.set_joint_positions(home, 2.0)
     
     def inverse_kinematics(self, x, y, z):
+        rospy.loginfo(f"IK called for target: ({x:.3f}, {y:.3f}, {z:.3f})")
+        
         j1 = math.atan2(y, x)
         
         r = math.sqrt(x*x + y*y)
@@ -80,8 +88,10 @@ class DirectSorting:
         max_reach = self.L2 + self.L3
         min_reach = abs(self.L2 - self.L3)
         
+        rospy.loginfo(f"Distance: {d:.3f}, Range: [{min_reach:.3f}, {max_reach:.3f}]")
+        
         if d > max_reach or d < min_reach:
-            rospy.logwarn(f"Target unreachable: d={d:.3f}, max={max_reach:.3f}")
+            rospy.logerr(f"TARGET UNREACHABLE! d={d:.3f}, max={max_reach:.3f}")
             return None
         
         cos_j3 = (d**2 - self.L2**2 - self.L3**2) / (2 * self.L2 * self.L3)
@@ -98,14 +108,21 @@ class DirectSorting:
         
         j3 = -j3
         
+        rospy.loginfo(f"IK solution: [{j1:.3f}, {j2:.3f}, {j3:.3f}, {j4:.3f}, {j5:.3f}]")
+        
         return [j1, j2, j3, j4, j5]
     
     def move_to_position(self, x, y, z):
+        rospy.loginfo(f">>> Moving to ({x:.3f}, {y:.3f}, {z:.3f})")
         joints = self.inverse_kinematics(x, y, z)
         if joints:
+            rospy.loginfo("Sending joint commands...")
             self.set_joint_positions(joints, 2.0)
+            rospy.loginfo("Move completed")
             return True
-        return False
+        else:
+            rospy.logerr("IK failed - cannot move")
+            return False
     
     def pick_cube(self, x, y, z):
         rospy.loginfo(f"Picking cube at ({x:.3f}, {y:.3f}, {z:.3f})")
