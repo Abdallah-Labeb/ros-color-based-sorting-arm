@@ -1,0 +1,9 @@
+<launch>
+  <param name="/use_sim_time" value="true"/>
+
+  <include file="$(find color_sorting_arm)/launch/gazebo.launch"/>
+
+  <node name="direct_sorting" pkg="color_sorting_arm" type="direct_sorting.py" output="screen"/>
+
+  <include file="$(find color_sorting_arm)/launch/rviz.launch"/>
+</launch>
