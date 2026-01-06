@@ -18,9 +18,9 @@ class DirectSorting:
     }
     
     BIN_LOCATIONS = {
-        'red': (0.35, 0.18, 0.75),
-        'blue': (0.35, -0.18, 0.75),
-        'green': (0.35, 0.0, 0.75)
+        'red': (0.35, 0.18, 0.73),
+        'blue': (0.35, -0.18, 0.73),
+        'green': (0.35, 0.0, 0.73)
     }
     
     BASE_Z = 0.7
@@ -127,20 +127,20 @@ class DirectSorting:
         
         rospy.loginfo(f"Picking {cube_name} at ({x:.2f}, {y:.2f}, {z:.2f})")
         
-        approach_z = z + 0.01
+        approach_z = z + 0.02
         joints = self.inverse_kinematics(x, y, approach_z)
         if not self.move_joints(joints, 1.0):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z - 0.01)
+        joints = self.inverse_kinematics(x, y, z - 0.03)
         if not self.move_joints(joints, 0.8):
             return False
         
         self.close_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.04)
+        joints = self.inverse_kinematics(x, y, z + 0.05)
         self.move_joints(joints, 0.8)
         
         return True
@@ -150,18 +150,18 @@ class DirectSorting:
         
         rospy.loginfo(f"Placing in {color} bin at ({x:.2f}, {y:.2f}, {z:.2f})")
         
-        approach_z = z + 0.01
+        approach_z = z + 0.02
         joints = self.inverse_kinematics(x, y, approach_z)
         if not self.move_joints(joints, 1.0):
             return False
         
-        joints = self.inverse_kinematics(x, y, z - 0.0)
+        joints = self.inverse_kinematics(x, y, z - 0.02)
         if not self.move_joints(joints, 0.8):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.04)
+        joints = self.inverse_kinematics(x, y, z + 0.05)
         self.move_joints(joints, 0.8)
         
         return True
