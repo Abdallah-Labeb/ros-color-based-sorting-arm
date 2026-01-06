@@ -20,18 +20,18 @@
     <model name="table">
       <static>true</static>
       <link name="table_link">
-        <pose>0.35 0 0.15 0 0 0</pose>
+        <pose>0.35 0 0.35 0 0 0</pose>
         <collision name="collision">
           <geometry>
             <box>
-              <size>0.8 0.7 0.3</size>
+              <size>0.8 0.7 0.7</size>
             </box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.8 0.7 0.3</size>
+              <size>0.8 0.7 0.7</size>
             </box>
           </geometry>
           <material>
@@ -139,7 +139,7 @@
     </model>
 
     <model name="red_cube_1">
-      <pose>0.30 0.10 0.725 0 0 0.4</pose>
+      <pose>0.20 0.08 0.725 0 0 0.4</pose>
       <link name="link">
         <inertial>
           <mass>0.08</mass>
@@ -171,7 +171,7 @@
     </model>
 
     <model name="red_cube_2">
-      <pose>0.35 0.12 0.725 0 0 1.2</pose>
+      <pose>0.25 0.10 0.725 0 0 1.2</pose>
       <link name="link">
         <inertial>
           <mass>0.08</mass>
@@ -203,7 +203,7 @@
     </model>
 
     <model name="blue_cube_1">
-      <pose>0.30 -0.10 0.725 0 0 0.8</pose>
+      <pose>0.20 -0.08 0.725 0 0 0.8</pose>
       <link name="link">
         <inertial>
           <mass>0.08</mass>
@@ -235,7 +235,7 @@
     </model>
 
     <model name="blue_cube_2">
-      <pose>0.35 -0.12 0.725 0 0 2.1</pose>
+      <pose>0.25 -0.10 0.725 0 0 2.1</pose>
       <link name="link">
         <inertial>
           <mass>0.08</mass>
@@ -267,7 +267,7 @@
     </model>
 
     <model name="green_cube_1">
-      <pose>0.32 0.0 0.725 0 0 0.5</pose>
+      <pose>0.22 0.0 0.725 0 0 0.5</pose>
       <link name="link">
         <inertial>
           <mass>0.08</mass>
@@ -299,7 +299,7 @@
     </model>
 
     <model name="green_cube_2">
-      <pose>0.38 0.05 0.725 0 0 1.7</pose>
+      <pose>0.28 0.03 0.725 0 0 1.7</pose>
       <link name="link">
         <inertial>
           <mass>0.08</mass>
@@ -332,7 +332,7 @@
 
     <model name="red_bin">
       <static>true</static>
-      <pose>0.45 0.20 0.72 0 0 0</pose>
+      <pose>0.35 0.18 0.72 0 0 0</pose>
       <link name="link">
         <visual name="bottom">
           <pose>0 0 0 0 0 0</pose>
@@ -384,7 +384,7 @@
 
     <model name="blue_bin">
       <static>true</static>
-      <pose>0.45 -0.20 0.72 0 0 0</pose>
+      <pose>0.35 -0.18 0.72 0 0 0</pose>
       <link name="link">
         <visual name="bottom">
           <pose>0 0 0 0 0 0</pose>
@@ -436,7 +436,7 @@
 
     <model name="green_bin">
       <static>true</static>
-      <pose>0.45 0.0 0.72 0 0 0</pose>
+      <pose>0.35 0.0 0.72 0 0 0</pose>
       <link name="link">
         <visual name="bottom">
           <pose>0 0 0 0 0 0</pose>
