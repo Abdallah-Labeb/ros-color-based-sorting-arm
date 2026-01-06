@@ -92,7 +92,7 @@ class DirectSorting:
         
         return [j1, j2, j3, j4, j5]
     
-    def move_joints(self, joints, duration=1.0):
+    def move_joints(self, joints, duration=0.6):
         if joints is None:
             return False
         for i, j in enumerate(joints, 1):
@@ -127,21 +127,21 @@ class DirectSorting:
         
         rospy.loginfo(f"Picking {cube_name} at ({x:.2f}, {y:.2f}, {z:.2f})")
         
-        approach_z = z + 0.015
+        approach_z = z + 0.0
         joints = self.inverse_kinematics(x, y, approach_z)
-        if not self.move_joints(joints, 1.0):
+        if not self.move_joints(joints, 0.6):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z - 0.04)
-        if not self.move_joints(joints, 0.8):
+        joints = self.inverse_kinematics(x, y, z - 0.05)
+        if not self.move_joints(joints, 0.6):
             return False
         
         self.close_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.06)
-        self.move_joints(joints, 0.8)
+        joints = self.inverse_kinematics(x, y, z + 0.07)
+        self.move_joints(joints, 0.6)
         
         return True
     
@@ -150,19 +150,19 @@ class DirectSorting:
         
         rospy.loginfo(f"Placing in {color} bin at ({x:.2f}, {y:.2f}, {z:.2f})")
         
-        approach_z = z + 0.015
+        approach_z = z + 0.0
         joints = self.inverse_kinematics(x, y, approach_z)
-        if not self.move_joints(joints, 1.0):
+        if not self.move_joints(joints, 0.6):
             return False
         
-        joints = self.inverse_kinematics(x, y, z - 0.03)
-        if not self.move_joints(joints, 0.8):
+        joints = self.inverse_kinematics(x, y, z - 0.04)
+        if not self.move_joints(joints, 0.6):
             return False
         
         self.open_gripper()
         
-        joints = self.inverse_kinematics(x, y, z + 0.06)
-        self.move_joints(joints, 0.8)
+        joints = self.inverse_kinematics(x, y, z + 0.07)
+        self.move_joints(joints, 0.6)
         
         return True
     
