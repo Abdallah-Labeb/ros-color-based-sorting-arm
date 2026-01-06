@@ -24,7 +24,7 @@ class DirectSorting:
     }
     
     BASE_Z = 0.7
-    L1 = 0.11
+    L1 = 0.09
     L2 = 0.25
     L3 = 0.20
     L4 = 0.12
